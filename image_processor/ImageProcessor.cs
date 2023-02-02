@@ -1,118 +1,116 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 
-///<summary> Class ImageProcessor </summary>
+///<summary>ImageProcessor class</summary>
 class ImageProcessor
 {
-    ///<summary> Inverse Method: produce inverse of given image </summary>
+    ///<summary>Method for inversing pixel color for images</summary>
     public static void Inverse(string[] filenames)
     {
-        foreach (string filename in filenames)
+        foreach (string file in filenames)
         {
-            Bitmap bitmap = new Bitmap(filename);
-            Color c;
-            for (int x = 0; x < bitmap.Width; x++)
+            Bitmap image1 = new Bitmap(file);
+
+            int x, y;
+
+            for(x = 0; x < image1.Width; x++)
             {
-                for (int y = 0; y < bitmap.Height; y++)
+                for(y = 0; y < image1.Height; y++)
                 {
-                    c = bitmap.GetPixel(x, y);
-                    c = Color.FromArgb(255, (255 - c.R), (255 - c.G), (255 - c.B));
-                    bitmap.SetPixel(x, y, c);
+                    Color pixelColor = image1.GetPixel(x, y);
+                    Color newColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B);
+                    image1.SetPixel(x, y, newColor);
                 }
             }
-            string new_filename = Path.GetFileNameWithoutExtension(filename) + "_inverse" + Path.GetExtension(filename);
-            bitmap.Save(new_filename);
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_inverse." + newName[1];
+            image1.Save(concatFile);
+            
         }
     }
 
-    /// <summary> Grayscale Method: produce greyscale image of given image </summary>
-    public static void Grayscale(string[] filenames) 
+    ///<summary>Method for converting images to grayscale</summary>
+    public static void Grayscale(string[] filenames)
     {
-        foreach (string filename in filenames)
+        foreach (string file in filenames)
         {
-            Bitmap bitmap = new Bitmap(filename);
-            Color c;
-            for (int i = 0; i < bitmap.Width; i++)
+            Bitmap image1 = new Bitmap(file);
+
+            int x, y;
+
+            for(x = 0; x < image1.Width; x++)
             {
-                for (int j = 0; j < bitmap.Height; j++)
+                for(y = 0; y < image1.Height; y++)
                 {
-                    c = bitmap.GetPixel(i, j);
-                    byte gray = (byte)(.299 * c.R + .587 * c.G + .114 * c.B);
-                    bitmap.SetPixel(i, j, Color.FromArgb(gray, gray, gray));
+                    Color pixelColor = image1.GetPixel(x, y);
+                    int grayScale = (int)((pixelColor.R * 0.3) + (pixelColor.G * 0.59) + (pixelColor.B * 0.11));
+                    Color newColor = Color.FromArgb(pixelColor.A, grayScale, grayScale, grayScale);
+                    image1.SetPixel(x, y, newColor);
                 }
             }
-            string new_filename = Path.GetFileNameWithoutExtension(filename) + "_grayscale" + Path.GetExtension(filename);
-            bitmap.Save(new_filename);
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_grayscale." + newName[1];
+            image1.Save(concatFile);
+            
         }
     }
 
-    /// <summary> BlackWhite Method: produce a black/white image from a given image </summary>
-    public static void BlackWhite(string[] filenames, double threshold) {
+    ///<summary>Method for converting images to grayscale</summary>
+    public static void BlackWhite(string[] filenames, double threshold)
     {
-        foreach (string filename in filenames)
+        foreach (string file in filenames)
         {
-            Bitmap bitmap = new Bitmap(filename);
-            Color c;
-            for (int i = 0; i < bitmap.Width; i++)
+            Bitmap image1 = new Bitmap(file);
+            Color newColor;
+
+            int x, y;
+
+            for(x = 0; x < image1.Width; x++)
             {
-                for (int j = 0; j < bitmap.Height; j++)
+                for(y = 0; y < image1.Height; y++)
                 {
-                    c = bitmap.GetPixel(i, j);
-                    double luminance = ((c.R * 0.3) + (c.G * 0.59) + (c.B * 0.11));
-                    if (luminance < threshold)
+                    Color pixelColor = image1.GetPixel(x, y);
+                    if (GetBrightness(pixelColor) >= threshold)
                     {
-                        bitmap.SetPixel(i, j, Color.FromArgb(0, 0, 0));
+                        newColor = Color.FromArgb(pixelColor.A, 255, 255, 255);
                     }
                     else
                     {
-                        bitmap.SetPixel(i, j, Color.FromArgb(255, 255, 255));
+                        newColor = Color.FromArgb(pixelColor.A, 0, 0, 0);
                     }
+                    image1.SetPixel(x, y, newColor);
                 }
             }
-            string new_filename = Path.GetFileNameWithoutExtension(filename) + "_bw" + Path.GetExtension(filename);
-            bitmap.Save(new_filename);
-            }
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_bw." + newName[1];
+            image1.Save(concatFile);
+            
         }
     }
-    /// <summary> Thumbnail Method: produce a thumbnail image from a given image </summary>
+    ///<summary>Method for getting the brightness value to compare against threshold</summary>
+    public static double GetBrightness(Color color)
+    {
+        return (0.2126*color.R + 0.7152*color.G + 0.0722*color.B);
+    }
+
+    ///<summary>Method for converting images to grayscale</summary>
     public static void Thumbnail(string[] filenames, int height)
     {
-        foreach (string filename in filenames)
+        foreach (string file in filenames)
         {
-            Bitmap bmap = new Bitmap(filename);
-            //Color c;
-            int imageHeight = bmap.Height;
-            int imageWidth = bmap.Width;
-            double aspectRatioX = (double)imageWidth / imageHeight;
-            int thumbWidth = (int)(height * aspectRatioX);
+            Image image = Image.FromFile(file);
+            int aspect = image.Height / height;
+            Image thumb = image.GetThumbnailImage(image.Width / aspect , height, ()=>false, IntPtr.Zero);
 
-            Image thumb = bmap.GetThumbnailImage(thumbWidth, height, ()=>false, IntPtr.Zero);
-
-            var qualityEncoder = System.Drawing.Imaging.Encoder.Quality;
-            var quality = (long)100; //Image Quality 
-            var ratio = new EncoderParameter(qualityEncoder, quality);
-            var codecParams = new EncoderParameters(1);
-            codecParams.Param[0] = ratio;
-            var codecInfo = GetEncoder(ImageFormat.Jpeg);
-
-            string new_filename = Path.GetFileNameWithoutExtension(filename) + "_th" + Path.GetExtension(filename);
-            thumb.Save(new_filename, codecInfo, codecParams);
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_th." + newName[1];
+            thumb.Save(concatFile);
         }
-    }
-
-    ///<summary> GetEncoder Method </summary>
-    private static ImageCodecInfo GetEncoder(ImageFormat format)
-    {
-        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
-        foreach (ImageCodecInfo codec in codecs)
-        {
-            if (codec.FormatID == format.Guid)
-            {
-                return codec;
-            }
-        }
-        return null;
     }
 }
