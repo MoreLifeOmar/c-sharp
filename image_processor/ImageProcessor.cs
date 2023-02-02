@@ -1,116 +1,214 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Threading;
+using System.Threading.Tasks;
 
-///<summary>ImageProcessor class</summary>
-class ImageProcessor
-{
-    ///<summary>Method for inversing pixel color for images</summary>
-    public static void Inverse(string[] filenames)
-    {
-        foreach (string file in filenames)
-        {
-            Bitmap image1 = new Bitmap(file);
 
-            int x, y;
 
-            for(x = 0; x < image1.Width; x++)
-            {
-                for(y = 0; y < image1.Height; y++)
-                {
-                    Color pixelColor = image1.GetPixel(x, y);
-                    Color newColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B);
-                    image1.SetPixel(x, y, newColor);
-                }
-            }
-            string name = file.Split("/")[1];
-            string[] newName = name.Split(".");
-            string concatFile = newName[0] + "_inverse." + newName[1];
-            image1.Save(concatFile);
-            
-        }
-    }
+class ImageProcessor{
+    /// <summary>
+    /// Function that creates a new thread for every image to be processed.
+    /// </summary>
+    /// <param name="filenames">String with all file names</param>
+    public static void Inverse(string[] filenames) {
+        // Parallel.ForEach(filenames, (myFile) =>
+        // {
+        //     var ext = Path.GetExtension(myFile);
+        //     var fName = Path.GetFileNameWithoutExtension(myFile);
+        //     fName += "_inverse" + ext;
 
-    ///<summary>Method for converting images to grayscale</summary>
-    public static void Grayscale(string[] filenames)
-    {
-        foreach (string file in filenames)
-        {
-            Bitmap image1 = new Bitmap(file);
+        //     Bitmap bmp = new Bitmap(myFile);
 
-            int x, y;
+        //     Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+        //     BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, bmp.PixelFormat);
 
-            for(x = 0; x < image1.Width; x++)
-            {
-                for(y = 0; y < image1.Height; y++)
-                {
-                    Color pixelColor = image1.GetPixel(x, y);
-                    int grayScale = (int)((pixelColor.R * 0.3) + (pixelColor.G * 0.59) + (pixelColor.B * 0.11));
-                    Color newColor = Color.FromArgb(pixelColor.A, grayScale, grayScale, grayScale);
-                    image1.SetPixel(x, y, newColor);
-                }
-            }
-            string name = file.Split("/")[1];
-            string[] newName = name.Split(".");
-            string concatFile = newName[0] + "_grayscale." + newName[1];
-            image1.Save(concatFile);
-            
-        }
-    }
+        //     IntPtr ptr = bmpData.Scan0;
 
-    ///<summary>Method for converting images to grayscale</summary>
-    public static void BlackWhite(string[] filenames, double threshold)
-    {
-        foreach (string file in filenames)
-        {
-            Bitmap image1 = new Bitmap(file);
-            Color newColor;
+        //     int bytes = Math.Abs(bmpData.Stride) * bmp.Height;
+        //     byte[] rgbValues = new byte[bytes];
 
-            int x, y;
+        //     System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
 
-            for(x = 0; x < image1.Width; x++)
-            {
-                for(y = 0; y < image1.Height; y++)
-                {
-                    Color pixelColor = image1.GetPixel(x, y);
-                    if (GetBrightness(pixelColor) >= threshold)
-                    {
-                        newColor = Color.FromArgb(pixelColor.A, 255, 255, 255);
-                    }
-                    else
-                    {
-                        newColor = Color.FromArgb(pixelColor.A, 0, 0, 0);
-                    }
-                    image1.SetPixel(x, y, newColor);
-                }
-            }
-            string name = file.Split("/")[1];
-            string[] newName = name.Split(".");
-            string concatFile = newName[0] + "_bw." + newName[1];
-            image1.Save(concatFile);
-            
-        }
-    }
-    ///<summary>Method for getting the brightness value to compare against threshold</summary>
-    public static double GetBrightness(Color color)
-    {
-        return (0.2126*color.R + 0.7152*color.G + 0.0722*color.B);
-    }
+        //     for (int i = 0; i < rgbValues.Length; i++)
+        //         rgbValues[i] = (byte)(255 - rgbValues[i]);
 
-    ///<summary>Method for converting images to grayscale</summary>
-    public static void Thumbnail(string[] filenames, int height)
-    {
-        foreach (string file in filenames)
-        {
-            Image image = Image.FromFile(file);
-            int aspect = image.Height / height;
-            Image thumb = image.GetThumbnailImage(image.Width / aspect , height, ()=>false, IntPtr.Zero);
+        //     System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, ptr, bytes);
 
-            string name = file.Split("/")[1];
-            string[] newName = name.Split(".");
-            string concatFile = newName[0] + "_th." + newName[1];
-            thumb.Save(concatFile);
-        }
+        //     bmp.UnlockBits(bmpData);
+
+        //     bmp.Save($"{fName}");
+        // });
+
+
+        
     }
 }
+
+// class Program
+// {
+//     static void Main(string[] args)
+//     {
+//         string[] filenames;
+
+//         if (args.Length > 1)
+//             filenames = args;
+//         else
+//             filenames = Directory.GetFiles("images/", "*.jpg");
+
+//         ImageProcessor.Inverse(filenames);
+//     }
+// }
+
+
+
+// using System;
+// using System.IO;
+// using System.Collections.Generic;
+// using System.Drawing;
+// using System.Drawing.Imaging;
+// using System.Threading;
+// using System.Threading.Tasks;
+
+// /// <summary>
+// /// new class ImageProcessor
+// /// </summary>
+// class ImageProcessor
+// {
+//     /// <summary>
+//     /// method to invert colors
+//     /// </summary>
+//     /// <param name="filenames"></param>
+//     public static void Inverse(string[] filenames)
+//     {
+
+        // Parallel.ForEach(filenames, (myFile) =>
+        // {
+        //     var ext = Path.GetExtension(myFile);
+        //     var fName = Path.GetFileNameWithoutExtension(myFile);
+        //     fName += "_inverse" + ext;
+
+        //     Bitmap bmp = new Bitmap(myFile);
+
+        //     Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+        //     BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, bmp.PixelFormat);
+
+        //     IntPtr ptr = bmpData.Scan0;
+
+        //     int bytes = Math.Abs(bmpData.Stride) * bmp.Height;
+        //     byte[] rgbValues = new byte[bytes];
+
+        //     System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
+
+        //     for (int i = 0; i < rgbValues.Length; i++)
+        //         rgbValues[i] = (byte)(255 - rgbValues[i]);
+
+        //     System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, ptr, bytes);
+
+        //     bmp.UnlockBits(bmpData);
+
+        //     bmp.Save($"{fName}");
+        // });
+//     }
+
+//     /// <summary>
+//     /// method to convert to grayscale
+//     /// </summary>
+//     /// <param name="filenames"></param>
+//     public static void Grayscale(string[] filenames)
+//     {
+//         Parallel.ForEach(filenames, (myFile) =>
+//         {
+//             var ext = Path.GetExtension(myFile);
+//             var fName = Path.GetFileNameWithoutExtension(myFile);
+//             fName += "_grayscale" + ext;
+
+//             Bitmap bmp = new Bitmap(myFile);
+
+//             Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+//             System.Drawing.Imaging.BitmapData bmpData =
+//                 bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite,
+//                 bmp.PixelFormat);
+
+//             IntPtr ptr = bmpData.Scan0;
+
+//             int bytes = Math.Abs(bmpData.Stride) * bmp.Height;
+//             byte[] rgbValues = new byte[bytes];
+
+//             System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
+
+//             for (int i = 0; i < rgbValues.Length - 3; i += 3)
+//             {
+//                 byte gray = (byte)((rgbValues[i] * 0.21 + rgbValues[i + 1] * 0.71 + rgbValues[i + 2] * 0.071));
+//                 rgbValues[i] = rgbValues[i + 1] = rgbValues[i + 2] = gray;
+//             }
+
+//             System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, ptr, bytes);
+
+//             bmp.UnlockBits(bmpData);
+
+//             bmp.Save($"{fName}");
+//         });
+//     }
+//     /// <summary>
+//     /// method to convert to black and white
+//     /// </summary>
+//     /// <param name="filenames"></param>
+
+//     public static void BlackWhite(string[] filenames, double threshold)
+//     {
+//         Parallel.ForEach(filenames, (myFile) =>
+//         {
+//             var ext = Path.GetExtension(myFile);
+//             var fName = Path.GetFileNameWithoutExtension(myFile);
+//             fName += "_bw" + ext;
+
+//             Bitmap bmp = new Bitmap(myFile);
+
+//             Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+//             System.Drawing.Imaging.BitmapData bmpData =
+//                 bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite,
+//                 bmp.PixelFormat);
+
+//             IntPtr ptr = bmpData.Scan0;
+
+//             int bytes = Math.Abs(bmpData.Stride) * bmp.Height;
+//             byte[] rgbValues = new byte[bytes];
+
+//             System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
+
+//             for (int i = 0; i < rgbValues.Length - 3; i += 3)
+//             {
+//                 byte gray = (byte)((rgbValues[i] * 0.21 + rgbValues[i + 1] * 0.71 + rgbValues[i + 2] * 0.071));
+
+//                 if (gray >= threshold)
+//                     rgbValues[i] = rgbValues[i + 1] = rgbValues[i + 2] = 255;
+//                 else rgbValues[i] = rgbValues[i + 1] = rgbValues[i + 2] = 0;
+//             }
+
+//             System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, ptr, bytes);
+
+//             bmp.UnlockBits(bmpData);
+
+//             bmp.Save($"{fName}");
+//         });
+//     }
+
+//     public static void Thumbnail(string[] filenames, int height)
+//     {
+//         Parallel.ForEach(filenames, myFile =>
+//         {
+//             var ext = Path.GetExtension(myFile);
+//             var fName = Path.GetFileNameWithoutExtension(myFile);
+//             fName += "_bw" + ext;
+
+//             Bitmap bmp = new Bitmap(myFile);
+//             int width = height * bmp.Width / bmp.Height;
+//             Image img = bmp.GetThumbnailImage(width, height, null, IntPtr.Zero);
+//             bmp.Save($"{fName}");
+
+//         });
+//     }
+// }
