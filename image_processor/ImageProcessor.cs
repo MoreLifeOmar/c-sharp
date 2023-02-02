@@ -2,130 +2,115 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace image_processor
+///<summary>ImageProcessor class</summary>
+class ImageProcessor
 {
-    class ImageProcessor
+    ///<summary>Method for inversing pixel color for images</summary>
+    public static void Inverse(string[] filenames)
     {
-        private static string[] _filenames;
-
-        /// <summary>
-        /// Runs a Color invert process on a list of images.
-        /// </summary>
-        /// <param name="filenames">List of files</param>
-        public static void Inverse(string[] filenames)
+        foreach (string file in filenames)
         {
-            Console.WriteLine(filenames[0]);
-            _filenames = filenames;
-            Thread.CurrentThread.Name = "Main";
-            List<Task> tasks = new List<Task>();
-            // for (int i = 0; i < tasks.Length; i++)
-            // {
-            //     var i1 = i;
-            //     tasks[i] = Task.Factory.StartNew(() =>
-            //         InvertTask(filenames[i1])
-            //     );
-            // }
+            Bitmap image1 = new Bitmap(file);
 
-            foreach (var filename in filenames)
+            int x, y;
+
+            for(x = 0; x < image1.Width; x++)
             {
-                // tasks.Add(Task.Run(() => InvertTask(filename)));
-                tasks.Add(Task.Run(() => MatrixInvertTask(filename)));
-            }
-
-            Console.WriteLine("Starting Tasks");
-            Task.WaitAll(tasks.ToArray());
-            Console.WriteLine("Finished Tasks");
-        }
-
-
-        private static void Invert()
-        {
-            foreach (var filename in _filenames)
-            {
-                Console.WriteLine($"Processing: {filename}");
-                Image img = Image.FromFile(filename);
-
-                Bitmap bitmap = new Bitmap(img);
-                Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height);
-
-                for (int x = 0; x < bitmap.Width; x++)
-                for (int y = 0; y < bitmap.Height; y++)
+                for(y = 0; y < image1.Height; y++)
                 {
-                    var pixel = bitmap.GetPixel(x, y);
-                    pixel = Color.FromArgb(pixel.ToArgb() ^ 0xffffff);
-                    newBitmap.SetPixel(x, y, pixel);
+                    Color pixelColor = image1.GetPixel(x, y);
+                    Color newColor = Color.FromArgb(255 - pixelColor.R, 255 - pixelColor.G, 255 - pixelColor.B);
+                    image1.SetPixel(x, y, newColor);
                 }
-
-                var fn = Path.GetFileNameWithoutExtension(filename);
-                var ext = Path.GetExtension(filename);
-                var file = $"images/{fn}_inverse.{ext}";
-                newBitmap.Save(file);
-                // var e = img.GetEncoderParameterList(Guid.Empty);
-                // Console.WriteLine($"{e.Param}");
             }
-        }
-
-        private static void InvertTask(string filename)
-        {
-            Console.WriteLine($"Processing: {filename}");
-            Image img = Image.FromFile(filename);
-            Bitmap bitmap = new Bitmap(img);
-
-            Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height);
-
-            for (int x = 0; x < bitmap.Width; x++)
-            for (int y = 0; y < bitmap.Height; y++)
-            {
-                var pixel = bitmap.GetPixel(x, y);
-                pixel = Color.FromArgb(pixel.ToArgb() ^ 0xffffff);
-                newBitmap.SetPixel(x, y, pixel);
-            }
-
-            var fn = Path.GetFileNameWithoutExtension(filename);
-            var ext = Path.GetExtension(filename);
-            var file = $"images/{fn}_inverse{ext}";
-            newBitmap.Save(file, img.RawFormat);
-        }
-
-        private static void MatrixInvertTask(string filename)
-        {
-            Console.WriteLine($"Processing: {filename}");
-            Image img = Image.FromFile(filename);
-            Bitmap bitmap = new Bitmap(img);
-
-            Graphics g = Graphics.FromImage(bitmap);
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_inverse." + newName[1];
+            image1.Save(concatFile);
             
-            ColorMatrix clrMatrix = new ColorMatrix(
-                new float[][]
+        }
+    }
+
+    ///<summary>Method for converting images to grayscale</summary>
+    public static void Grayscale(string[] filenames)
+    {
+        foreach (string file in filenames)
+        {
+            Bitmap image1 = new Bitmap(file);
+
+            int x, y;
+
+            for(x = 0; x < image1.Width; x++)
+            {
+                for(y = 0; y < image1.Height; y++)
                 {
-                    new float[] {-1, 0, 0, 0, 0},
-                    new float[] {0, -1, 0, 0, 0},
-                    new float[] {0, 0, -1, 0, 0},
-                    new float[] {0, 0, 0, 1, 0},
-                    new float[] {1, 1, 1, 0, 1}
-                });
+                    Color pixelColor = image1.GetPixel(x, y);
+                    int grayScale = (int)((pixelColor.R * 0.3) + (pixelColor.G * 0.59) + (pixelColor.B * 0.11));
+                    Color newColor = Color.FromArgb(pixelColor.A, grayScale, grayScale, grayScale);
+                    image1.SetPixel(x, y, newColor);
+                }
+            }
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_grayscale." + newName[1];
+            image1.Save(concatFile);
+            
+        }
+    }
 
-            ImageAttributes attributes = new ImageAttributes();
+    ///<summary>Method for converting images to grayscale</summary>
+    public static void BlackWhite(string[] filenames, double threshold)
+    {
+        foreach (string file in filenames)
+        {
+            Bitmap image1 = new Bitmap(file);
+            Color newColor;
 
-            attributes.SetColorMatrix(clrMatrix);
+            int x, y;
 
-            g.DrawImage(img,
-                new Rectangle(0, 0, img.Width, img.Height),
-                0, 0,
-                img.Width, img.Height,
-                GraphicsUnit.Pixel,
-                attributes
-            );
-            g.Dispose();
+            for(x = 0; x < image1.Width; x++)
+            {
+                for(y = 0; y < image1.Height; y++)
+                {
+                    Color pixelColor = image1.GetPixel(x, y);
+                    if (GetBrightness(pixelColor) >= threshold)
+                    {
+                        newColor = Color.FromArgb(pixelColor.A, 255, 255, 255);
+                    }
+                    else
+                    {
+                        newColor = Color.FromArgb(pixelColor.A, 0, 0, 0);
+                    }
+                    image1.SetPixel(x, y, newColor);
+                }
+            }
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_bw." + newName[1];
+            image1.Save(concatFile);
+            
+        }
+    }
+    ///<summary>Method for getting the brightness value to compare against threshold</summary>
+    public static double GetBrightness(Color color)
+    {
+        return (0.2126*color.R + 0.7152*color.G + 0.0722*color.B);
+    }
 
-            var fn = Path.GetFileNameWithoutExtension(filename);
-            var ext = Path.GetExtension(filename);
-            bitmap.Save($"./{fn}_inverse{ext}", img.RawFormat);
+    ///<summary>Method for converting images to grayscale</summary>
+    public static void Thumbnail(string[] filenames, int height)
+    {
+        foreach (string file in filenames)
+        {
+            Image image = Image.FromFile(file);
+            int aspect = image.Height / height;
+            Image thumb = image.GetThumbnailImage(image.Width / aspect , height, ()=>false, IntPtr.Zero);
+
+            string name = file.Split("/")[1];
+            string[] newName = name.Split(".");
+            string concatFile = newName[0] + "_th." + newName[1];
+            thumb.Save(concatFile);
         }
     }
 }
