@@ -1,135 +1,131 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-/// <summary>
-/// Represents an image processor.
-/// </summary>
-class ImageProcessor
+namespace image_processor
 {
-    /// <summary>
-    /// Creates inverted images.
-    /// </summary>
-    /// <param name="filenames">The array of image filenames to invert.</param>
-    public static void Inverse(string[] filenames)
+    class ImageProcessor
     {
-        ChangeFiles(filenames, "_inverse", (byte[] bytes) => {
+        private static string[] _filenames;
 
-            for (int i = 0; i < bytes.Length; i++)
-                bytes[i] = (byte)(255 - bytes[i]);
-                
-        });
-    }
+        /// <summary>
+        /// Runs a Color invert process on a list of images.
+        /// </summary>
+        /// <param name="filenames">List of files</param>
+        public static void Inverse(string[] filenames)
+        {
+            Console.WriteLine(filenames[0]);
+            _filenames = filenames;
+            Thread.CurrentThread.Name = "Main";
+            List<Task> tasks = new List<Task>();
+            // for (int i = 0; i < tasks.Length; i++)
+            // {
+            //     var i1 = i;
+            //     tasks[i] = Task.Factory.StartNew(() =>
+            //         InvertTask(filenames[i1])
+            //     );
+            // }
 
-    /// <summary>
-    /// Creates grayscale images.
-    /// </summary>
-    /// <param name="filenames">The array of image filenames to convert to grayscale.</param>
-    public static void Grayscale(string[] filenames)
-    {
-        ChangeFiles(filenames, "_grayscale", (byte[] bytes) => {
-
-            for (int i = 0; i < bytes.Length - 2; i += 3)
+            foreach (var filename in filenames)
             {
-                byte avg = (byte)((bytes[i] + bytes[i + 1] + bytes[i + 2]) / 3);
-
-                bytes[i] = avg;
-                bytes[i + 1] = avg;
-                bytes[i + 2] = avg;
+                // tasks.Add(Task.Run(() => InvertTask(filename)));
+                tasks.Add(Task.Run(() => MatrixInvertTask(filename)));
             }
 
-        });
-    }
+            Console.WriteLine("Starting Tasks");
+            Task.WaitAll(tasks.ToArray());
+            Console.WriteLine("Finished Tasks");
+        }
 
-    /// <summary>
-    /// Creates black and white images.
-    /// </summary>
-    /// <param name="filenames">The array of image filenames to convert to black and white.</param>
-    /// <param name="threshold">The luminance threshold.</param>
-    public static void BlackWhite(string[] filenames, double threshold)
-    {
-        ChangeFiles(filenames, "_bw", (byte[] bytes) => {
 
-            for (int i = 0; i < bytes.Length - 2; i += 3)
+        private static void Invert()
+        {
+            foreach (var filename in _filenames)
             {
-                byte val = 0;
+                Console.WriteLine($"Processing: {filename}");
+                Image img = Image.FromFile(filename);
 
-                if ((bytes[i] + bytes[i + 1] + bytes[i + 2]) >= threshold)
-                    val = 255;
+                Bitmap bitmap = new Bitmap(img);
+                Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height);
 
-                bytes[i] = val;
-                bytes[i + 1] = val;
-                bytes[i + 2] = val;
+                for (int x = 0; x < bitmap.Width; x++)
+                for (int y = 0; y < bitmap.Height; y++)
+                {
+                    var pixel = bitmap.GetPixel(x, y);
+                    pixel = Color.FromArgb(pixel.ToArgb() ^ 0xffffff);
+                    newBitmap.SetPixel(x, y, pixel);
+                }
+
+                var fn = Path.GetFileNameWithoutExtension(filename);
+                var ext = Path.GetExtension(filename);
+                var file = $"images/{fn}_inverse.{ext}";
+                newBitmap.Save(file);
+                // var e = img.GetEncoderParameterList(Guid.Empty);
+                // Console.WriteLine($"{e.Param}");
+            }
+        }
+
+        private static void InvertTask(string filename)
+        {
+            Console.WriteLine($"Processing: {filename}");
+            Image img = Image.FromFile(filename);
+            Bitmap bitmap = new Bitmap(img);
+
+            Bitmap newBitmap = new Bitmap(bitmap.Width, bitmap.Height);
+
+            for (int x = 0; x < bitmap.Width; x++)
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                var pixel = bitmap.GetPixel(x, y);
+                pixel = Color.FromArgb(pixel.ToArgb() ^ 0xffffff);
+                newBitmap.SetPixel(x, y, pixel);
             }
 
-        });
-    }
+            var fn = Path.GetFileNameWithoutExtension(filename);
+            var ext = Path.GetExtension(filename);
+            var file = $"images/{fn}_inverse{ext}";
+            newBitmap.Save(file, img.RawFormat);
+        }
 
-    /// <summary>
-    /// Creates thumbnail images.
-    /// </summary>
-    /// <param name="filenames">The array of image filenames to create thumbnails from.</param>
-    /// <param name="height">The height of the thumbnail (retains aspect ratio).</param>
-    public static void Thumbnail(string[] filenames, int height)
-    {
-        Parallel.ForEach(filenames, (filename) => {
-            string name = Path.GetFileNameWithoutExtension(filename);
-            string extension = Path.GetExtension(filename);
+        private static void MatrixInvertTask(string filename)
+        {
+            Console.WriteLine($"Processing: {filename}");
+            Image img = Image.FromFile(filename);
+            Bitmap bitmap = new Bitmap(img);
 
-            Image im = Image.FromFile(filename);
-            int width = im.Width / (im.Height / height);
-            Image thumb = im.GetThumbnailImage(width, height, ()=>false, IntPtr.Zero);
+            Graphics g = Graphics.FromImage(bitmap);
+            
+            ColorMatrix clrMatrix = new ColorMatrix(
+                new float[][]
+                {
+                    new float[] {-1, 0, 0, 0, 0},
+                    new float[] {0, -1, 0, 0, 0},
+                    new float[] {0, 0, -1, 0, 0},
+                    new float[] {0, 0, 0, 1, 0},
+                    new float[] {1, 1, 1, 0, 1}
+                });
 
-            thumb.Save($"{name}_th{extension}");
-        });
-    }
+            ImageAttributes attributes = new ImageAttributes();
 
-    /// <summary>
-    /// Processes files in parallel.
-    /// </summary>
-    /// <param name="filenames">The array of filenames to process.</param>
-    /// <param name="app">The filename suffix before extension.</param>
-    /// <param name="f">The processing function.</param>
-    public static void ChangeFiles(string[] filenames, string app, Action<byte[]> f)
-    {
-        Parallel.ForEach(filenames, (filename) => {
-            BitmapHelper(f, filename, app);
-        });
-    }
+            attributes.SetColorMatrix(clrMatrix);
 
-    /// <summary>
-    /// Creates locked bitmaps for images.
-    /// </summary>
-    /// <param name="f">The processing function.</param>
-    /// <param name="filename">The original filename.</param>
-    /// <param name="app">The filename suffix before extension.</param>
-    public static void BitmapHelper(Action<byte[]> f, string filename, string app)
-    {
-        string name = Path.GetFileNameWithoutExtension(filename);
-        string extension = Path.GetExtension(filename);
+            g.DrawImage(img,
+                new Rectangle(0, 0, img.Width, img.Height),
+                0, 0,
+                img.Width, img.Height,
+                GraphicsUnit.Pixel,
+                attributes
+            );
+            g.Dispose();
 
-        Bitmap bm = new Bitmap(filename);
-
-        Rectangle rect = new Rectangle(0, 0, bm.Width, bm.Height);
-        System.Drawing.Imaging.BitmapData bmData =
-            bm.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite,
-            bm.PixelFormat);
-
-        IntPtr p = bmData.Scan0;
-
-        int bytes = Math.Abs(bmData.Stride) * bm.Height;
-        byte[] rgbValues = new byte[bytes];
-
-        System.Runtime.InteropServices.Marshal.Copy(p, rgbValues, 0, bytes);
-
-        f(rgbValues);
-
-        System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, p, bytes);
-
-        bm.UnlockBits(bmData);
-        
-        bm.Save($"{name}{app}{extension}");
+            var fn = Path.GetFileNameWithoutExtension(filename);
+            var ext = Path.GetExtension(filename);
+            bitmap.Save($"./{fn}_inverse{ext}", img.RawFormat);
+        }
     }
 }
